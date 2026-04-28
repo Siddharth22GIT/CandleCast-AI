@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CandleCast — Crypto Signal Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0f;
+  --surface:#111318;
+  --surface2:#181b22;
+  --surface3:#1e2230;
+  --border:#ffffff12;
+  --border2:#ffffff20;
+  --text:#f0f2f8;
+  --muted:#7a8099;
+  --muted2:#4a5068;
+  --buy:#00e5a0;
+  --buy-bg:#00e5a015;
+  --sell:#ff4d6d;
+  --sell-bg:#ff4d6d15;
+  --hold:#f5a623;
+  --hold-bg:#f5a62315;
+  --accent:#6c63ff;
+  --accent2:#3ecfff;
+  --mono:'Space Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+/* TOP NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(10,11,15,0.92);backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px}
+.logo-text{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.5px}
+.logo-text span{color:var(--accent2)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.model-badge{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--border2);padding:4px 10px;border-radius:20px;letter-spacing:.5px}
+.accuracy-badge{font-family:var(--mono);font-size:10px;color:var(--buy);border:1px solid var(--buy);padding:4px 10px;border-radius:20px;letter-spacing:.5px;background:var(--buy-bg)}
+
+/* HERO STATS */
+.hero{padding:28px 28px 20px;border-bottom:1px solid var(--border)}
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;max-width:900px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;font-family:var(--mono)}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:700}
+.stat-val.buy{color:var(--buy)}
+.stat-val.sell{color:var(--sell)}
+.stat-val.hold{color:var(--hold)}
+.stat-val.white{color:var(--text)}
+
+/* MAIN LAYOUT */
+.main{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 130px)}
+
+/* LEFT PANEL */
+.left-panel{border-right:1px solid var(--border);overflow-y:auto;max-height:calc(100vh - 130px)}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:10}
+.panel-title{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.8px}
+.search-box{width:100%;padding:10px 14px 10px 36px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border .2s}
+.search-box:focus{border-color:var(--accent)}
+.search-wrap{position:relative;padding:12px 16px;border-bottom:1px solid var(--border)}
+.search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.filter-row{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.filter-btn{font-family:var(--mono);font-size:10px;letter-spacing:.5px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;padding:5px 12px;cursor:pointer;transition:all .2s}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-btn.buy.active{background:var(--buy);border-color:var(--buy);color:#000}
+.filter-btn.sell.active{background:var(--sell);border-color:var(--sell);color:#fff}
+.filter-btn.hold.active{background:var(--hold);border-color:var(--hold);color:#000}
+
+/* COIN LIST */
+.coin-list{padding:8px 0}
+.coin-item{display:flex;align-items:center;padding:10px 16px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;gap:12px}
+.coin-item:hover{background:var(--surface)}
+.coin-item.active{background:var(--surface2);border-left-color:var(--accent)}
+.coin-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0}
+.coin-info{flex:1;min-width:0}
+.coin-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.coin-price{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.coin-right{text-align:right;flex-shrink:0}
+.signal-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px}
+.signal-badge.BUY{background:var(--buy-bg);color:var(--buy);border:1px solid var(--buy)30}
+.signal-badge.SELL{background:var(--sell-bg);color:var(--sell);border:1px solid var(--sell)30}
+.signal-badge.HOLD{background:var(--hold-bg);color:var(--hold);border:1px solid var(--hold)30}
+.coin-change{font-family:var(--mono);font-size:10px;margin-top:3px}
+.pos{color:var(--buy)}
+.neg{color:var(--sell)}
+
+/* RIGHT PANEL */
+.right-panel{padding:24px 28px;overflow-y:auto;max-height:calc(100vh - 130px)}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.detail-coin-info{display:flex;align-items:center;gap:16px}
+.detail-avatar{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:16px;font-weight:700}
+.detail-name{font-family:var(--mono);font-size:26px;font-weight:700;margin-bottom:4px}
+.detail-price{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.detail-signal{text-align:right}
+.big-signal{font-family:var(--mono);font-size:32px;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.big-signal.BUY{color:var(--buy)}
+.big-signal.SELL{color:var(--sell)}
+.big-signal.HOLD{color:var(--hold)}
+.conf-text{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* CHART */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.chart-title{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.chart-wrap{position:relative;width:100%;height:220px}
+
+/* METRICS GRID */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
+.metric-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.7px;margin-bottom:6px}
+.metric-val{font-family:var(--mono);font-size:18px;font-weight:700}
+
+/* PROB BARS */
+.prob-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.prob-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.prob-row:last-child{margin-bottom:0}
+.prob-label{font-family:var(--mono);font-size:11px;font-weight:700;width:36px;letter-spacing:.5px}
+.prob-bar-wrap{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.prob-bar{height:100%;border-radius:4px;transition:width .6s ease}
+.prob-bar.buy{background:var(--buy)}
+.prob-bar.sell{background:var(--sell)}
+.prob-bar.hold{background:var(--hold)}
+.prob-pct{font-family:var(--mono);font-size:11px;color:var(--muted);width:36px;text-align:right}
+
+/* RSI GAUGE */
+.indicators-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.indicator-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.indicator-title{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.7px;margin-bottom:12px}
+.rsi-track{width:100%;height:6px;background:linear-gradient(to right,var(--sell) 0%,var(--hold) 30%,var(--hold) 70%,var(--buy) 100%);border-radius:3px;position:relative;margin-bottom:8px}
+.rsi-needle{width:12px;height:12px;background:var(--text);border-radius:50%;position:absolute;top:-3px;transform:translateX(-50%);transition:left .6s ease;box-shadow:0 0 6px rgba(255,255,255,.3)}
+.rsi-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted2)}
+.rsi-val{font-family:var(--mono);font-size:20px;font-weight:700;text-align:center}
+.vol-info{display:flex;flex-direction:column;gap:8px}
+.vol-row{display:flex;justify-content:space-between;align-items:center}
+.vol-key{font-size:12px;color:var(--muted)}
+.vol-v{font-family:var(--mono);font-size:12px;font-weight:500}
+
+/* DISCLAIMER */
+.disclaimer{background:var(--surface);border:1px solid var(--hold)30;border-radius:10px;padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.6}
+.disclaimer span{color:var(--hold);font-weight:500}
+
+/* EMPTY STATE */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:60px 0}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* MOBILE */
+@media(max-width:768px){
+  .main{grid-template-columns:1fr}
+  .right-panel{display:none}
+  .right-panel.mobile-show{display:block;position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;padding:20px}
+  .left-panel{max-height:calc(100vh - 130px)}
+  .back-btn{display:flex!important}
+}
+.back-btn{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border);padding:7px 14px;border-radius:6px;cursor:pointer;margin-bottom:20px}
+
+/* CONFIDENCE ring */
+.conf-ring{position:relative;width:64px;height:64px}
+.conf-ring canvas{position:absolute;inset:0}
+.conf-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.conf-ring-pct{font-family:var(--mono);font-size:13px;font-weight:700}
+.conf-ring-label{font-family:var(--mono);font-size:7px;color:var(--muted);letter-spacing:.5px}
+
+.no-results{text-align:center;padding:32px 16px;font-family:var(--mono);font-size:11px;color:var(--muted2)}
+
+/* AI PREDICT BUTTON */
+.ai-predict-btn{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:8px;padding:9px 16px;font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:.5px;transition:opacity .2s;white-space:nowrap}
+.ai-predict-btn:hover{opacity:.85}
+.ai-predict-btn svg{width:14px;height:14px;flex-shrink:0}
+
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-header{padding:24px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.modal-title{font-family:var(--mono);font-size:16px;font-weight:700}
+.modal-title span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;transition:all .2s}
+.modal-close:hover{border-color:var(--border2);color:var(--text)}
+.modal-body{padding:20px 24px 24px}
+
+/* INPUT FORM */
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:520px){.input-grid{grid-template-columns:1fr}}
+.input-group{display:flex;flex-direction:column;gap:6px}
+.input-group.full{grid-column:1/-1}
+.input-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.7px}
+.input-field{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border .2s;width:100%}
+.input-field:focus{border-color:var(--accent)}
+.input-field::placeholder{color:var(--muted2)}
+select.input-field option{background:var(--surface2)}
+
+/* COIN SUGGEST DROPDOWN */
+.coin-suggest{position:relative}
+.suggest-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;z-index:100;max-height:180px;overflow-y:auto;display:none}
+.suggest-list.show{display:block}
+.suggest-item{padding:8px 14px;font-family:var(--mono);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s}
+.suggest-item:hover,.suggest-item.highlighted{background:var(--surface3)}
+.suggest-sym{font-weight:700;color:var(--text)}
+.suggest-price{color:var(--muted);font-size:11px}
+.suggest-sig{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:700}
+
+/* GENERATE BTN */
+.gen-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;cursor:pointer;letter-spacing:.5px;transition:opacity .2s;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px}
+.gen-btn:hover{opacity:.88}
+.gen-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* LOADING STATE */
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 0}
+.loading-dots{display:flex;gap:6px}
+.loading-dots span{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:bounce .8s infinite}
+.loading-dots span:nth-child(2){animation-delay:.15s;background:var(--accent2)}
+.loading-dots span:nth-child(3){animation-delay:.3s;background:var(--buy)}
+@keyframes bounce{0%,80%,100%{transform:scale(.7);opacity:.5}40%{transform:scale(1);opacity:1}}
+.loading-label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.5px}
+
+/* REPORT */
+.report{margin-top:20px}
+.report-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.report-section{margin-bottom:20px}
+.report-section-title{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.8px;margin-bottom:10px;text-transform:uppercase}
+.report-text{font-size:13px;line-height:1.8;color:var(--text)}
+.report-text p{margin-bottom:10px}
+.report-text p:last-child{margin-bottom:0}
+
+/* VERDICT CARD */
+.verdict-card{border-radius:12px;padding:20px;margin-top:20px;border-width:1px;border-style:solid}
+.verdict-card.BUY{background:#00e5a008;border-color:#00e5a030}
+.verdict-card.SELL{background:#ff4d6d08;border-color:#ff4d6d30}
+.verdict-card.HOLD{background:#f5a62308;border-color:#f5a62330}
+.verdict-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.verdict-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.verdict-icon.BUY{background:#00e5a020}
+.verdict-icon.SELL{background:#ff4d6d20}
+.verdict-icon.HOLD{background:#f5a62320}
+.verdict-label{font-family:var(--mono);font-size:22px;font-weight:700}
+.verdict-label.BUY{color:var(--buy)}
+.verdict-label.SELL{color:var(--sell)}
+.verdict-label.HOLD{color:var(--hold)}
+.verdict-sublabel{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.5px}
+.verdict-conclusions{display:flex;flex-direction:column;gap:8px}
+.verdict-point{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.6}
+.verdict-bullet{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.verdict-bullet.BUY{background:var(--buy)}
+.verdict-bullet.SELL{background:var(--sell)}
+.verdict-bullet.HOLD{background:var(--hold)}
+
+/* INVESTMENT CALC */
+.inv-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:16px}
+.inv-stat{background:var(--surface3);border-radius:8px;padding:12px}
+.inv-stat-label{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.6px;margin-bottom:5px}
+.inv-stat-val{font-family:var(--mono);font-size:14px;font-weight:700}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <path d="M5 17l4-8 4 6 3-4 3 6"/>
+        <rect x="3" y="3" width="4" height="8" rx="1" fill="white" stroke="none" opacity=".6"/>
+        <rect x="17" y="9" width="4" height="6" rx="1" fill="white" stroke="none" opacity=".6"/>
+      </svg>
+    </div>
+    <span class="logo-text">Candle<span>Cast</span></span>
+  </div>
+  <div class="nav-right">
+    <span class="model-badge">XGBoost · 25 Features</span>
+    <span class="accuracy-badge">68.4% high-conf</span>
+    <button class="ai-predict-btn" onclick="openModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Generate Prediction
+    </button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-grid" id="heroStats"></div>
+</div>
+
+<div class="main">
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-header">
+      <span class="panel-title">100 COINS</span>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input class="search-box" id="searchBox" placeholder="Search coin..." autocomplete="off">
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="ALL" onclick="setFilter('ALL',this)">ALL</button>
+      <button class="filter-btn buy" data-filter="BUY" onclick="setFilter('BUY',this)">BUY</button>
+      <button class="filter-btn sell" data-filter="SELL" onclick="setFilter('SELL',this)">SELL</button>
+      <button class="filter-btn hold" data-filter="HOLD" onclick="setFilter('HOLD',this)">HOLD</button>
+    </div>
+    <div class="coin-list" id="coinList"></div>
+  </div>
+
+  <div class="right-panel" id="rightPanel">
+    <div class="empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><path d="M5 17l4-8 4 6 3-4 3 6"/><rect x="3" y="3" width="4" height="8" rx="1"/><rect x="17" y="9" width="4" height="6" rx="1"/></svg>
+      <span>Select a coin to view prediction</span>
+    </div>
+  </div>
+</div>
+
+<!-- AI PREDICTION MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title"><span>AI-Powered</span> Prediction Engine</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono)">Enter your trade details for a deep analysis report</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-grid">
+        <div class="input-group coin-suggest">
+          <label class="input-label">COIN / TOKEN</label>
+          <input class="input-field" id="inputCoin" placeholder="e.g. BTC, ETH, SOL..." autocomplete="off" oninput="handleCoinInput()" onkeydown="handleCoinKey(event)">
+          <div class="suggest-list" id="suggestList"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">INVESTMENT AMOUNT (USD)</label>
+          <input class="input-field" id="inputAmount" type="number" min="0" step="any" placeholder="e.g. 500">
+        </div>
+
+        <div class="input-group full">
+          <label class="input-label">YOUR POSITION</label>
+          <select class="input-field" id="inputPosition">
+            <option value="not_bought">I haven't bought yet — should I buy?</option>
+            <option value="already_bought">I already bought — should I hold or sell?</option>
+            <option value="partial">I hold some — should I buy more?</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="gen-btn" id="genBtn" onclick="generatePrediction()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Generate Prediction
+      </button>
+      <div id="reportArea"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+async function fetchLivePrice(coin) {
+  try {
+    const res = await fetch(`/api/price/${coin}`);
+    const data = await res.json();
+    return data.price;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+async function getML(features) {
+  const res = await fetch('/api/ml-predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(features)
+  });
+  return await res.json();
+}
+
+
+const PREDICTIONS = {"1INCH": {"signal": "BUY", "confidence": 43.3, "probas": {"sell": 35.3, "hold": 21.4, "buy": 43.3}, "price": 0.087175, "change_1d": -4.53, "change_7d": -8.93, "rsi": 38.0, "last_date": "2026-03-27", "has_volume": false}, "AAVE": {"signal": "SELL", "confidence": 52.0, "probas": {"sell": 52.0, "hold": 17.1, "buy": 30.9}, "price": 98.10056, "change_1d": -6.76, "change_7d": -12.33, "rsi": 34.8, "last_date": "2026-03-27", "has_volume": true}, "ADA": {"signal": "BUY", "confidence": 41.4, "probas": {"sell": 26.5, "hold": 32.1, "buy": 41.4}, "price": 0.245751, "change_1d": -3.65, "change_7d": -7.94, "rsi": 39.9, "last_date": "2026-03-27", "has_volume": true}, "ALGO": {"signal": "SELL", "confidence": 49.9, "probas": {"sell": 49.9, "hold": 25.5, "buy": 24.7}, "price": 0.081984, "change_1d": -2.62, "change_7d": -9.39, "rsi": 39.0, "last_date": "2026-03-27", "has_volume": false}, "AMP": {"signal": "BUY", "confidence": 49.2, "probas": {"sell": 30.7, "hold": 20.1, "buy": 49.2}, "price": 0.001108, "change_1d": -5.62, "change_7d": -12.95, "rsi": 22.6, "last_date": "2026-03-27", "has_volume": false}, "AR": {"signal": "BUY", "confidence": 74.9, "probas": {"sell": 12.6, "hold": 12.5, "buy": 74.9}, "price": 1.69259, "change_1d": -4.9, "change_7d": -0.77, "rsi": 43.6, "last_date": "2026-03-27", "has_volume": false}, "ATOM": {"signal": "SELL", "confidence": 63.3, "probas": {"sell": 63.3, "hold": 18.2, "buy": 18.5}, "price": 1.68309, "change_1d": -0.72, "change_7d": -7.76, "rsi": 33.8, "last_date": "2026-03-27", "has_volume": true}, "AVAX": {"signal": "BUY", "confidence": 41.9, "probas": {"sell": 33.2, "hold": 24.9, "buy": 41.9}, "price": 8.76825, "change_1d": -3.76, "change_7d": -8.56, "rsi": 40.4, "last_date": "2026-03-27", "has_volume": false}, "AXS": {"signal": "BUY", "confidence": 44.9, "probas": {"sell": 29.8, "hold": 25.3, "buy": 44.9}, "price": 1.10748, "change_1d": 3.9, "change_7d": -9.08, "rsi": 41.6, "last_date": "2026-03-27", "has_volume": false}, "BAT": {"signal": "BUY", "confidence": 71.0, "probas": {"sell": 16.9, "hold": 12.1, "buy": 71.0}, "price": 0.093921, "change_1d": -7.76, "change_7d": -3.61, "rsi": 40.7, "last_date": "2026-03-27", "has_volume": false}, "BCH": {"signal": "BUY", "confidence": 49.3, "probas": {"sell": 22.5, "hold": 28.2, "buy": 49.3}, "price": 471.5057, "change_1d": 2.29, "change_7d": -0.32, "rsi": 49.0, "last_date": "2026-03-27", "has_volume": false}, "BNB": {"signal": "BUY", "confidence": 36.0, "probas": {"sell": 35.0, "hold": 29.0, "buy": 36.0}, "price": 610.5179, "change_1d": -3.04, "change_7d": -5.14, "rsi": 38.7, "last_date": "2026-03-27", "has_volume": true}, "BSV": {"signal": "SELL", "confidence": 35.5, "probas": {"sell": 35.5, "hold": 29.9, "buy": 34.7}, "price": 13.64997, "change_1d": -1.22, "change_7d": -7.77, "rsi": 39.1, "last_date": "2026-03-27", "has_volume": false}, "BTC": {"signal": "BUY", "confidence": 37.3, "probas": {"sell": 34.0, "hold": 28.7, "buy": 37.3}, "price": 66000.97, "change_1d": -4.19, "change_7d": -6.72, "rsi": 40.1, "last_date": "2026-03-27", "has_volume": true}, "BTT": {"signal": "BUY", "confidence": 43.5, "probas": {"sell": 21.8, "hold": 34.6, "buy": 43.5}, "price": 0.000001, "change_1d": -2.58, "change_7d": -5.73, "rsi": 37.7, "last_date": "2026-03-27", "has_volume": false}, "CAKE": {"signal": "BUY", "confidence": 62.2, "probas": {"sell": 20.1, "hold": 17.7, "buy": 62.2}, "price": 1.36273, "change_1d": -3.61, "change_7d": -2.99, "rsi": 44.9, "last_date": "2026-03-27", "has_volume": false}, "CFX": {"signal": "SELL", "confidence": 44.6, "probas": {"sell": 44.6, "hold": 14.7, "buy": 40.7}, "price": 0.057429, "change_1d": -3.31, "change_7d": -10.96, "rsi": 49.1, "last_date": "2026-03-27", "has_volume": false}, "CHZ": {"signal": "BUY", "confidence": 35.0, "probas": {"sell": 33.4, "hold": 31.5, "buy": 35.0}, "price": 0.035393, "change_1d": 0.39, "change_7d": -2.13, "rsi": 44.1, "last_date": "2026-03-27", "has_volume": false}, "COMP": {"signal": "BUY", "confidence": 63.3, "probas": {"sell": 21.1, "hold": 15.6, "buy": 63.3}, "price": 18.3345, "change_1d": -2.92, "change_7d": -3.73, "rsi": 46.9, "last_date": "2026-03-27", "has_volume": false}, "CRO": {"signal": "BUY", "confidence": 49.9, "probas": {"sell": 32.7, "hold": 17.4, "buy": 49.9}, "price": 0.070759, "change_1d": -3.98, "change_7d": -5.9, "rsi": 35.1, "last_date": "2026-03-27", "has_volume": true}, "CRV": {"signal": "BUY", "confidence": 47.1, "probas": {"sell": 25.1, "hold": 27.8, "buy": 47.1}, "price": 0.211237, "change_1d": -3.83, "change_7d": -10.89, "rsi": 37.5, "last_date": "2026-03-27", "has_volume": false}, "CVX": {"signal": "SELL", "confidence": 54.1, "probas": {"sell": 54.1, "hold": 16.2, "buy": 29.7}, "price": 1.6535, "change_1d": -2.39, "change_7d": -10.99, "rsi": 37.4, "last_date": "2026-03-27", "has_volume": false}, "DAI": {"signal": "HOLD", "confidence": 99.8, "probas": {"sell": 0.2, "hold": 99.8, "buy": 0.1}, "price": 1.0004, "change_1d": 0.01, "change_7d": 0.04, "rsi": 54.9, "last_date": "2026-03-27", "has_volume": false}, "DASH": {"signal": "BUY", "confidence": 53.9, "probas": {"sell": 30.5, "hold": 15.7, "buy": 53.9}, "price": 31.44371, "change_1d": -3.18, "change_7d": -2.24, "rsi": 42.0, "last_date": "2026-03-27", "has_volume": false}, "DCR": {"signal": "BUY", "confidence": 68.2, "probas": {"sell": 17.9, "hold": 13.9, "buy": 68.2}, "price": 19.10117, "change_1d": -1.17, "change_7d": -23.38, "rsi": 32.9, "last_date": "2026-03-27", "has_volume": false}, "DOGE": {"signal": "BUY", "confidence": 42.6, "probas": {"sell": 28.5, "hold": 29.0, "buy": 42.6}, "price": 0.089992, "change_1d": -2.32, "change_7d": -4.62, "rsi": 42.7, "last_date": "2026-03-27", "has_volume": true}, "DOT": {"signal": "SELL", "confidence": 54.7, "probas": {"sell": 54.7, "hold": 27.9, "buy": 17.4}, "price": 1.28461, "change_1d": -2.66, "change_7d": -15.25, "rsi": 34.6, "last_date": "2026-03-27", "has_volume": true}, "EGLD": {"signal": "BUY", "confidence": 49.2, "probas": {"sell": 15.5, "hold": 35.3, "buy": 49.2}, "price": 3.83243, "change_1d": -2.21, "change_7d": -7.62, "rsi": 39.2, "last_date": "2026-03-27", "has_volume": false}, "ENS": {"signal": "HOLD", "confidence": 36.7, "probas": {"sell": 27.5, "hold": 36.7, "buy": 35.9}, "price": 5.67826, "change_1d": -3.62, "change_7d": -9.27, "rsi": 39.9, "last_date": "2026-03-27", "has_volume": false}, "ETC": {"signal": "BUY", "confidence": 47.1, "probas": {"sell": 32.1, "hold": 20.8, "buy": 47.1}, "price": 8.06839, "change_1d": -1.95, "change_7d": -4.27, "rsi": 43.0, "last_date": "2026-03-27", "has_volume": false}, "ETH": {"signal": "BUY", "confidence": 37.7, "probas": {"sell": 37.4, "hold": 24.9, "buy": 37.7}, "price": 1984.914, "change_1d": -3.9, "change_7d": -7.86, "rsi": 42.1, "last_date": "2026-03-27", "has_volume": true}, "FET": {"signal": "BUY", "confidence": 54.9, "probas": {"sell": 35.4, "hold": 9.6, "buy": 54.9}, "price": 0.227432, "change_1d": -6.05, "change_7d": 0.3, "rsi": 57.3, "last_date": "2026-03-27", "has_volume": false}, "FIL": {"signal": "BUY", "confidence": 59.3, "probas": {"sell": 17.7, "hold": 23.0, "buy": 59.3}, "price": 0.835233, "change_1d": -3.89, "change_7d": -7.74, "rsi": 40.4, "last_date": "2026-03-27", "has_volume": false}, "FTT": {"signal": "BUY", "confidence": 69.3, "probas": {"sell": 19.6, "hold": 11.2, "buy": 69.3}, "price": 0.287143, "change_1d": -5.66, "change_7d": 0.38, "rsi": 44.6, "last_date": "2026-03-27", "has_volume": false}, "GALA": {"signal": "BUY", "confidence": 63.3, "probas": {"sell": 16.3, "hold": 20.4, "buy": 63.3}, "price": 0.002959, "change_1d": -2.65, "change_7d": -11.91, "rsi": 33.3, "last_date": "2026-03-27", "has_volume": false}, "GLM": {"signal": "BUY", "confidence": 52.3, "probas": {"sell": 31.2, "hold": 16.6, "buy": 52.3}, "price": 0.13306, "change_1d": 2.3, "change_7d": -1.63, "rsi": 46.3, "last_date": "2026-03-27", "has_volume": false}, "GNO": {"signal": "BUY", "confidence": 47.0, "probas": {"sell": 37.8, "hold": 15.3, "buy": 47.0}, "price": 118.3246, "change_1d": -3.82, "change_7d": -9.32, "rsi": 40.7, "last_date": "2026-03-27", "has_volume": false}, "GRT": {"signal": "SELL", "confidence": 50.6, "probas": {"sell": 50.6, "hold": 24.4, "buy": 25.0}, "price": 0.023744, "change_1d": -2.23, "change_7d": -9.29, "rsi": 38.2, "last_date": "2026-03-27", "has_volume": false}, "GT": {"signal": "SELL", "confidence": 48.3, "probas": {"sell": 48.3, "hold": 34.3, "buy": 17.3}, "price": 6.47361, "change_1d": -1.93, "change_7d": -4.27, "rsi": 36.2, "last_date": "2026-03-27", "has_volume": false}, "HBAR": {"signal": "SELL", "confidence": 40.8, "probas": {"sell": 40.8, "hold": 26.4, "buy": 32.8}, "price": 0.088843, "change_1d": -2.7, "change_7d": -5.02, "rsi": 39.4, "last_date": "2026-03-27", "has_volume": false}, "HNT": {"signal": "BUY", "confidence": 54.0, "probas": {"sell": 26.6, "hold": 19.4, "buy": 54.0}, "price": 1.16365, "change_1d": -3.18, "change_7d": -8.07, "rsi": 44.3, "last_date": "2026-03-27", "has_volume": false}, "ICP": {"signal": "SELL", "confidence": 39.7, "probas": {"sell": 39.7, "hold": 21.2, "buy": 39.0}, "price": 2.22433, "change_1d": -3.28, "change_7d": -11.58, "rsi": 35.8, "last_date": "2026-03-27", "has_volume": false}, "IMX": {"signal": "SELL", "confidence": 46.7, "probas": {"sell": 46.7, "hold": 35.3, "buy": 18.0}, "price": 0.145271, "change_1d": -0.01, "change_7d": -11.29, "rsi": 38.2, "last_date": "2026-03-27", "has_volume": false}, "INJ": {"signal": "BUY", "confidence": 48.1, "probas": {"sell": 18.9, "hold": 33.0, "buy": 48.1}, "price": 2.88142, "change_1d": -2.94, "change_7d": -6.91, "rsi": 41.4, "last_date": "2026-03-27", "has_volume": false}, "IOTA": {"signal": "SELL", "confidence": 37.0, "probas": {"sell": 37.0, "hold": 29.4, "buy": 33.6}, "price": 0.054989, "change_1d": -3.85, "change_7d": -11.0, "rsi": 30.9, "last_date": "2026-03-27", "has_volume": true}, "JST": {"signal": "BUY", "confidence": 64.1, "probas": {"sell": 21.2, "hold": 14.7, "buy": 64.1}, "price": 0.059918, "change_1d": -0.2, "change_7d": 0.81, "rsi": 69.3, "last_date": "2026-03-27", "has_volume": false}, "KCS": {"signal": "BUY", "confidence": 47.1, "probas": {"sell": 32.5, "hold": 20.4, "buy": 47.1}, "price": 7.83243, "change_1d": -1.68, "change_7d": -4.12, "rsi": 42.2, "last_date": "2026-03-27", "has_volume": false}, "LDO": {"signal": "BUY", "confidence": 55.7, "probas": {"sell": 27.8, "hold": 16.5, "buy": 55.7}, "price": 0.29834, "change_1d": 3.71, "change_7d": -0.37, "rsi": 46.6, "last_date": "2026-03-27", "has_volume": false}, "LEO": {"signal": "BUY", "confidence": 36.1, "probas": {"sell": 29.3, "hold": 34.6, "buy": 36.1}, "price": 8.96131, "change_1d": 0.15, "change_7d": 3.12, "rsi": 54.6, "last_date": "2026-03-27", "has_volume": false}, "LINK": {"signal": "BUY", "confidence": 51.1, "probas": {"sell": 28.8, "hold": 20.2, "buy": 51.1}, "price": 8.52744, "change_1d": -4.5, "change_7d": -6.68, "rsi": 41.8, "last_date": "2026-03-27", "has_volume": true}, "LPT": {"signal": "SELL", "confidence": 39.3, "probas": {"sell": 39.3, "hold": 34.0, "buy": 26.7}, "price": 2.09607, "change_1d": -2.35, "change_7d": -6.78, "rsi": 37.4, "last_date": "2026-03-27", "has_volume": false}, "LTC": {"signal": "BUY", "confidence": 62.6, "probas": {"sell": 15.6, "hold": 21.8, "buy": 62.6}, "price": 53.53393, "change_1d": -2.25, "change_7d": -4.71, "rsi": 43.8, "last_date": "2026-03-27", "has_volume": true}, "MANA": {"signal": "BUY", "confidence": 44.2, "probas": {"sell": 28.8, "hold": 27.1, "buy": 44.2}, "price": 0.081294, "change_1d": -4.01, "change_7d": -8.85, "rsi": 34.9, "last_date": "2026-03-27", "has_volume": false}, "MX": {"signal": "HOLD", "confidence": 96.2, "probas": {"sell": 2.6, "hold": 96.2, "buy": 1.2}, "price": 1.78554, "change_1d": -0.27, "change_7d": -0.23, "rsi": 40.4, "last_date": "2026-03-27", "has_volume": false}, "NEAR": {"signal": "SELL", "confidence": 44.4, "probas": {"sell": 44.4, "hold": 12.1, "buy": 43.5}, "price": 1.17765, "change_1d": -3.78, "change_7d": -11.04, "rsi": 41.0, "last_date": "2026-03-27", "has_volume": false}, "NEO": {"signal": "BUY", "confidence": 58.9, "probas": {"sell": 24.1, "hold": 17.0, "buy": 58.9}, "price": 2.58123, "change_1d": -3.28, "change_7d": -6.08, "rsi": 44.1, "last_date": "2026-03-27", "has_volume": false}, "NEXO": {"signal": "SELL", "confidence": 45.0, "probas": {"sell": 45.0, "hold": 20.3, "buy": 34.7}, "price": 0.870839, "change_1d": -3.08, "change_7d": -3.81, "rsi": 45.2, "last_date": "2026-03-27", "has_volume": false}, "NFT": {"signal": "HOLD", "confidence": 90.8, "probas": {"sell": 4.0, "hold": 90.8, "buy": 5.2}, "price": 0.000001, "change_1d": -0.94, "change_7d": -1.32, "rsi": 39.1, "last_date": "2026-03-27", "has_volume": false}, "OKB": {"signal": "BUY", "confidence": 57.4, "probas": {"sell": 26.9, "hold": 15.7, "buy": 57.4}, "price": 81.42557, "change_1d": -4.29, "change_7d": -8.61, "rsi": 37.8, "last_date": "2026-03-27", "has_volume": false}, "PAXG": {"signal": "BUY", "confidence": 57.8, "probas": {"sell": 15.3, "hold": 26.9, "buy": 57.8}, "price": 4499.46, "change_1d": 1.89, "change_7d": -0.35, "rsi": 32.3, "last_date": "2026-03-27", "has_volume": false}, "POL": {"signal": "SELL", "confidence": 67.7, "probas": {"sell": 67.7, "hold": 15.9, "buy": 16.4}, "price": 0.18319, "change_1d": 0.33, "change_7d": -9.92, "rsi": 39.2, "last_date": "2025-11-11", "has_volume": false}, "QNT": {"signal": "BUY", "confidence": 62.6, "probas": {"sell": 22.6, "hold": 14.9, "buy": 62.6}, "price": 71.31573, "change_1d": -3.76, "change_7d": -10.93, "rsi": 51.5, "last_date": "2026-03-27", "has_volume": false}, "QTUM": {"signal": "BUY", "confidence": 48.9, "probas": {"sell": 31.3, "hold": 19.8, "buy": 48.9}, "price": 0.820136, "change_1d": -3.62, "change_7d": -7.26, "rsi": 38.9, "last_date": "2026-03-27", "has_volume": false}, "RAY": {"signal": "BUY", "confidence": 46.0, "probas": {"sell": 23.6, "hold": 30.4, "buy": 46.0}, "price": 0.570686, "change_1d": -3.64, "change_7d": -7.49, "rsi": 40.3, "last_date": "2026-03-27", "has_volume": false}, "ROSE": {"signal": "SELL", "confidence": 67.9, "probas": {"sell": 67.9, "hold": 7.7, "buy": 24.4}, "price": 0.010547, "change_1d": -5.4, "change_7d": -12.23, "rsi": 34.6, "last_date": "2026-03-27", "has_volume": false}, "RSR": {"signal": "HOLD", "confidence": 37.6, "probas": {"sell": 28.2, "hold": 37.6, "buy": 34.1}, "price": 0.001629, "change_1d": -6.59, "change_7d": 0.12, "rsi": 48.3, "last_date": "2026-03-27", "has_volume": false}, "RUNE": {"signal": "SELL", "confidence": 44.1, "probas": {"sell": 44.1, "hold": 21.8, "buy": 34.2}, "price": 0.393921, "change_1d": -3.2, "change_7d": -6.64, "rsi": 38.8, "last_date": "2026-03-27", "has_volume": false}, "RVN": {"signal": "SELL", "confidence": 41.6, "probas": {"sell": 41.6, "hold": 18.3, "buy": 40.2}, "price": 0.005501, "change_1d": -0.34, "change_7d": -1.04, "rsi": 45.6, "last_date": "2026-03-27", "has_volume": false}, "SAND": {"signal": "BUY", "confidence": 42.6, "probas": {"sell": 31.8, "hold": 25.5, "buy": 42.6}, "price": 0.073285, "change_1d": -4.97, "change_7d": -10.94, "rsi": 36.7, "last_date": "2026-03-27", "has_volume": false}, "SHIB": {"signal": "BUY", "confidence": 48.4, "probas": {"sell": 13.7, "hold": 37.9, "buy": 48.4}, "price": 0.0000060, "change_1d": -2.55, "change_7d": -3.03, "rsi": 46.0, "last_date": "2026-03-27", "has_volume": false}, "SNX": {"signal": "SELL", "confidence": 36.3, "probas": {"sell": 36.3, "hold": 35.9, "buy": 27.8}, "price": 0.278144, "change_1d": -3.07, "change_7d": -13.84, "rsi": 37.8, "last_date": "2026-03-27", "has_volume": false}, "SOL": {"signal": "BUY", "confidence": 53.7, "probas": {"sell": 27.4, "hold": 18.9, "buy": 53.7}, "price": 82.72345, "change_1d": -4.7, "change_7d": -8.17, "rsi": 41.6, "last_date": "2026-03-27", "has_volume": true}, "STX": {"signal": "BUY", "confidence": 40.8, "probas": {"sell": 28.9, "hold": 30.3, "buy": 40.8}, "price": 0.224355, "change_1d": -4.44, "change_7d": -8.63, "rsi": 35.0, "last_date": "2026-03-27", "has_volume": false}, "SUN": {"signal": "HOLD", "confidence": 42.4, "probas": {"sell": 24.9, "hold": 42.4, "buy": 32.7}, "price": 0.017205, "change_1d": -1.45, "change_7d": -2.23, "rsi": 50.3, "last_date": "2026-03-27", "has_volume": false}, "SYRUP": {"signal": "BUY", "confidence": 53.8, "probas": {"sell": 32.1, "hold": 14.2, "buy": 53.8}, "price": 13.64, "change_1d": -0.44, "change_7d": -21.61, "rsi": 48.1, "last_date": "2025-04-30", "has_volume": false}, "TEL": {"signal": "BUY", "confidence": 40.4, "probas": {"sell": 38.6, "hold": 21.0, "buy": 40.4}, "price": 0.002104, "change_1d": -4.5, "change_7d": -14.65, "rsi": 31.6, "last_date": "2026-03-27", "has_volume": false}, "TFUEL": {"signal": "SELL", "confidence": 40.4, "probas": {"sell": 40.4, "hold": 22.2, "buy": 37.4}, "price": 0.011676, "change_1d": -0.28, "change_7d": -8.61, "rsi": 27.4, "last_date": "2026-03-27", "has_volume": false}, "THETA": {"signal": "BUY", "confidence": 67.8, "probas": {"sell": 12.4, "hold": 19.8, "buy": 67.8}, "price": 0.153069, "change_1d": -3.59, "change_7d": -10.68, "rsi": 33.1, "last_date": "2026-03-27", "has_volume": false}, "TRAC": {"signal": "BUY", "confidence": 54.8, "probas": {"sell": 32.0, "hold": 13.2, "buy": 54.8}, "price": 0.287343, "change_1d": -3.99, "change_7d": -8.59, "rsi": 37.5, "last_date": "2026-03-27", "has_volume": false}, "TRX": {"signal": "BUY", "confidence": 35.0, "probas": {"sell": 32.1, "hold": 33.0, "buy": 35.0}, "price": 0.310338, "change_1d": -0.39, "change_7d": -0.03, "rsi": 61.5, "last_date": "2026-03-27", "has_volume": true}, "TUSD": {"signal": "HOLD", "confidence": 99.8, "probas": {"sell": 0.1, "hold": 99.8, "buy": 0.1}, "price": 0.99892, "change_1d": 0.01, "change_7d": -0.03, "rsi": 46.0, "last_date": "2026-03-27", "has_volume": false}, "TWT": {"signal": "BUY", "confidence": 47.9, "probas": {"sell": 31.5, "hold": 20.6, "buy": 47.9}, "price": 0.45031, "change_1d": -7.36, "change_7d": -10.55, "rsi": 34.6, "last_date": "2026-03-27", "has_volume": false}, "UNI": {"signal": "SELL", "confidence": 45.5, "probas": {"sell": 45.5, "hold": 21.2, "buy": 33.4}, "price": 3.37532, "change_1d": -4.34, "change_7d": -6.61, "rsi": 39.0, "last_date": "2026-03-27", "has_volume": true}, "USDC": {"signal": "HOLD", "confidence": 99.7, "probas": {"sell": 0.2, "hold": 99.7, "buy": 0.2}, "price": 1.0003, "change_1d": 0.0, "change_7d": 0.04, "rsi": 54.9, "last_date": "2026-03-27", "has_volume": true}, "USDD": {"signal": "HOLD", "confidence": 99.6, "probas": {"sell": 0.1, "hold": 99.6, "buy": 0.3}, "price": 0.984505, "change_1d": -0.41, "change_7d": -0.17, "rsi": 44.2, "last_date": "2026-03-27", "has_volume": false}, "USDT": {"signal": "HOLD", "confidence": 99.8, "probas": {"sell": 0.1, "hold": 99.8, "buy": 0.1}, "price": 0.9997, "change_1d": -0.02, "change_7d": -0.01, "rsi": 43.1, "last_date": "2026-03-27", "has_volume": true}, "VET": {"signal": "BUY", "confidence": 43.6, "probas": {"sell": 35.9, "hold": 20.4, "buy": 43.6}, "price": 0.006651, "change_1d": -2.39, "change_7d": -8.37, "rsi": 37.4, "last_date": "2026-03-27", "has_volume": false}, "WEMIX": {"signal": "SELL", "confidence": 47.5, "probas": {"sell": 47.5, "hold": 21.3, "buy": 31.2}, "price": 0.244127, "change_1d": -2.18, "change_7d": -10.22, "rsi": 20.0, "last_date": "2026-03-27", "has_volume": false}, "XAUt": {"signal": "BUY", "confidence": 55.2, "probas": {"sell": 12.1, "hold": 32.7, "buy": 55.2}, "price": 4491.452, "change_1d": 1.81, "change_7d": -0.15, "rsi": 32.7, "last_date": "2026-03-27", "has_volume": false}, "XCN": {"signal": "SELL", "confidence": 35.9, "probas": {"sell": 35.9, "hold": 30.0, "buy": 34.2}, "price": 0.005134, "change_1d": -7.03, "change_7d": -2.3, "rsi": 47.5, "last_date": "2026-03-27", "has_volume": false}, "XDC": {"signal": "SELL", "confidence": 38.3, "probas": {"sell": 38.3, "hold": 24.6, "buy": 37.1}, "price": 0.030811, "change_1d": -1.87, "change_7d": -2.23, "rsi": 41.8, "last_date": "2026-03-27", "has_volume": false}, "XEC": {"signal": "BUY", "confidence": 53.3, "probas": {"sell": 25.7, "hold": 21.1, "buy": 53.3}, "price": 0.0000070, "change_1d": -2.81, "change_7d": -6.11, "rsi": 37.5, "last_date": "2026-03-27", "has_volume": false}, "XLM": {"signal": "BUY", "confidence": 49.1, "probas": {"sell": 34.2, "hold": 16.6, "buy": 49.1}, "price": 0.167267, "change_1d": -3.97, "change_7d": 0.97, "rsi": 50.8, "last_date": "2026-03-27", "has_volume": true}, "XMR": {"signal": "SELL", "confidence": 40.0, "probas": {"sell": 40.0, "hold": 26.5, "buy": 33.5}, "price": 324.795, "change_1d": -1.33, "change_7d": -6.91, "rsi": 39.7, "last_date": "2026-03-27", "has_volume": true}, "XRP": {"signal": "SELL", "confidence": 40.5, "probas": {"sell": 40.5, "hold": 20.9, "buy": 38.6}, "price": 1.32444, "change_1d": -2.85, "change_7d": -8.51, "rsi": 38.7, "last_date": "2026-03-27", "has_volume": true}, "XTZ": {"signal": "SELL", "confidence": 61.9, "probas": {"sell": 61.9, "hold": 11.4, "buy": 26.7}, "price": 0.349795, "change_1d": -5.86, "change_7d": -21.5, "rsi": 39.3, "last_date": "2026-03-27", "has_volume": false}, "YFI": {"signal": "BUY", "confidence": 53.3, "probas": {"sell": 18.9, "hold": 27.8, "buy": 53.3}, "price": 2474.525, "change_1d": -2.69, "change_7d": -10.53, "rsi": 39.0, "last_date": "2026-03-27", "has_volume": false}, "ZEC": {"signal": "SELL", "confidence": 41.2, "probas": {"sell": 41.2, "hold": 21.3, "buy": 37.5}, "price": 214.5971, "change_1d": -3.38, "change_7d": -9.41, "rsi": 43.7, "last_date": "2026-03-27", "has_volume": false}, "ZEN": {"signal": "SELL", "confidence": 41.7, "probas": {"sell": 41.7, "hold": 26.1, "buy": 32.1}, "price": 5.13497, "change_1d": -5.83, "change_7d": -10.24, "rsi": 38.9, "last_date": "2026-03-27", "has_volume": false}, "ZRX": {"signal": "BUY", "confidence": 43.8, "probas": {"sell": 33.9, "hold": 22.4, "buy": 43.8}, "price": 0.09881, "change_1d": -3.66, "change_7d": -6.53, "rsi": 40.9, "last_date": "2026-03-27", "has_volume": false}};
+
+// Color palette per coin
+const COIN_COLORS = ['#6c63ff','#3ecfff','#00e5a0','#f5a623','#ff4d6d','#a78bfa','#34d399','#60a5fa','#f472b6','#fb923c'];
+function coinColor(sym){const h=sym.split('').reduce((a,c)=>a+c.charCodeAt(0),0);return COIN_COLORS[h%COIN_COLORS.length]}
+
+function fmtPrice(p){
+  if(p===0||p===null)return '$0.000';
+  if(p>=1000)return '$'+p.toLocaleString('en',{maximumFractionDigits:2});
+  if(p>=1)return '$'+p.toFixed(4);
+  if(p>=0.0001)return '$'+p.toFixed(6);
+  return '$'+p.toExponential(2);
+}
+
+function fmtChange(c){
+  const s=c>=0?'+':'';
+  return `<span class="${c>=0?'pos':'neg'}">${s}${c.toFixed(2)}%</span>`;
+}
+
+let currentFilter='ALL', currentCoin=null, priceChart=null;
+
+// HERO STATS
+function renderHero(){
+  const coins=Object.keys(PREDICTIONS);
+  const buy=coins.filter(k=>PREDICTIONS[k].signal==='BUY').length;
+  const sell=coins.filter(k=>PREDICTIONS[k].signal==='SELL').length;
+  const hold=coins.filter(k=>PREDICTIONS[k].signal==='HOLD').length;
+  const avgConf=(coins.reduce((s,k)=>s+PREDICTIONS[k].confidence,0)/coins.length).toFixed(1);
+  const highConf=coins.filter(k=>PREDICTIONS[k].confidence>=65).length;
+  document.getElementById('heroStats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Coins</div><div class="stat-val white">${coins.length}</div></div>
+    <div class="stat-card"><div class="stat-label">BUY Signals</div><div class="stat-val buy">${buy}</div></div>
+    <div class="stat-card"><div class="stat-label">SELL Signals</div><div class="stat-val sell">${sell}</div></div>
+    <div class="stat-card"><div class="stat-label">HOLD Signals</div><div class="stat-val hold">${hold}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Confidence</div><div class="stat-val white">${avgConf}%</div></div>
+    <div class="stat-card"><div class="stat-label">High Conf (65%+)</div><div class="stat-val white">${highConf}</div></div>
+  `;
+}
+
+// COIN LIST
+function renderList(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  const coins=Object.keys(PREDICTIONS).filter(k=>{
+    const d=PREDICTIONS[k];
+    if(currentFilter!=='ALL'&&d.signal!==currentFilter)return false;
+    if(q&&!k.toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>PREDICTIONS[b].confidence-PREDICTIONS[a].confidence);
+
+  if(!coins.length){
+    document.getElementById('coinList').innerHTML='<div class="no-results">No coins found</div>';
+    return;
+  }
+  document.getElementById('coinList').innerHTML=coins.map(sym=>{
+    const d=PREDICTIONS[sym];
+    const col=coinColor(sym);
+    const active=sym===currentCoin?'active':'';
+    return `<div class="coin-item ${active}" onclick="selectCoin('${sym}')">
+      <div class="coin-avatar" style="background:${col}20;color:${col}">${sym.slice(0,3)}</div>
+      <div class="coin-info">
+        <div class="coin-name">${sym}</div>
+        <div class="coin-price">${fmtPrice(d.price)}</div>
+      </div>
+      <div class="coin-right">
+        <div class="signal-badge ${d.signal}">${d.signal}</div>
+        <div class="coin-change" style="margin-top:4px">${fmtChange(d.change_1d)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+document.getElementById('searchBox').addEventListener('input',renderList);
+
+// GENERATE SPARKLINE DATA (synthetic wave based on change data)
+function genSparkline(sym,d){
+  const base=d.price;
+  const pts=60;
+  const arr=[];
+  let v=base/(1+(d.change_7d||0)/100);
+  for(let i=0;i<pts;i++){
+    const noise=(Math.random()-0.5)*0.015*v;
+    const trend=(d.change_7d||0)/100/pts*v;
+    v=Math.max(v+trend+noise,0.0000001);
+    arr.push(v);
+  }
+  arr.push(base);
+  return arr;
+}
+
+// SELECT COIN
+function selectCoin(sym){
+  currentCoin=sym;
+  renderList();
+  renderDetail(sym);
+  const rp=document.getElementById('rightPanel');
+  rp.classList.add('mobile-show');
+}
+
+function renderDetail(sym){
+  const d=PREDICTIONS[sym];
+  const col=coinColor(sym);
+  const prices=genSparkline(sym,d);
+  const sigColor=d.signal==='BUY'?'var(--buy)':d.signal==='SELL'?'var(--sell)':'var(--hold)';
+  const rsiColor=d.rsi<30?'var(--sell)':d.rsi>70?'var(--buy)':'var(--hold)';
+  const rsiPct=Math.min(100,Math.max(0,d.rsi));
+
+  document.getElementById('rightPanel').innerHTML=`
+    <button class="back-btn" onclick="document.getElementById('rightPanel').classList.remove('mobile-show')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back
+    </button>
+
+    <div class="detail-header">
+      <div class="detail-coin-info">
+        <div class="detail-avatar" style="background:${col}20;color:${col}">${sym}</div>
+        <div>
+          <div class="detail-name">${sym}</div>
+          <div class="detail-price">${fmtPrice(d.price)} &nbsp; <span style="font-size:12px">${fmtChange(d.change_1d)} 24h</span></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-top:4px">Last updated: ${d.last_date}${d.has_volume?' · Vol+Mcap data':''}</div>
+        </div>
+      </div>
+      <div class="detail-signal">
+        <div class="big-signal ${d.signal}">${d.signal}</div>
+        <div class="conf-text">${d.confidence.toFixed(1)}% confidence</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>60-DAY PRICE CHART</span>
+        <span style="color:${sigColor}">${d.signal} signal</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart" role="img" aria-label="60-day price chart for ${sym}"></canvas>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">1D CHANGE</div>
+        <div class="metric-val" style="color:${d.change_1d>=0?'var(--buy)':'var(--sell)'}">${d.change_1d>=0?'+':''}${d.change_1d.toFixed(2)}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">7D CHANGE</div>
+        <div class="metric-val" style="color:${d.change_7d>=0?'var(--buy)':'var(--sell)'}">${d.change_7d>=0?'+':''}${d.change_7d.toFixed(2)}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">RSI (14)</div>
+        <div class="metric-val" style="color:${rsiColor}">${d.rsi.toFixed(1)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">CONFIDENCE</div>
+        <div class="metric-val" style="color:${sigColor}">${d.confidence.toFixed(1)}%</div>
+      </div>
+    </div>
+
+    <div class="prob-card">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.8px;margin-bottom:16px">SIGNAL PROBABILITIES (5-DAY FORECAST)</div>
+      <div class="prob-row">
+        <div class="prob-label" style="color:var(--buy)">BUY</div>
+        <div class="prob-bar-wrap"><div class="prob-bar buy" style="width:${d.probas.buy}%"></div></div>
+        <div class="prob-pct">${d.probas.buy.toFixed(1)}%</div>
+      </div>
+      <div class="prob-row">
+        <div class="prob-label" style="color:var(--sell)">SELL</div>
+        <div class="prob-bar-wrap"><div class="prob-bar sell" style="width:${d.probas.sell}%"></div></div>
+        <div class="prob-pct">${d.probas.sell.toFixed(1)}%</div>
+      </div>
+      <div class="prob-row">
+        <div class="prob-label" style="color:var(--hold)">HOLD</div>
+        <div class="prob-bar-wrap"><div class="prob-bar hold" style="width:${d.probas.hold}%"></div></div>
+        <div class="prob-pct">${d.probas.hold.toFixed(1)}%</div>
+      </div>
+    </div>
+
+    <div class="indicators-row">
+      <div class="indicator-card">
+        <div class="indicator-title">RSI GAUGE</div>
+        <div class="rsi-track">
+          <div class="rsi-needle" style="left:${rsiPct}%"></div>
+        </div>
+        <div class="rsi-labels"><span>Oversold</span><span>Neutral</span><span>Overbought</span></div>
+        <div style="margin-top:12px;text-align:center">
+          <div class="rsi-val" style="color:${rsiColor}">${d.rsi.toFixed(1)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px">${d.rsi<30?'OVERSOLD':d.rsi>70?'OVERBOUGHT':'NEUTRAL'}</div>
+        </div>
+      </div>
+      <div class="indicator-card">
+        <div class="indicator-title">SIGNAL SUMMARY</div>
+        <div class="vol-info">
+          <div class="vol-row"><span class="vol-key">Algorithm</span><span class="vol-v" style="font-size:11px">XGBoost</span></div>
+          <div class="vol-row"><span class="vol-key">Features</span><span class="vol-v">25</span></div>
+          <div class="vol-row"><span class="vol-key">Horizon</span><span class="vol-v">5 days</span></div>
+          <div class="vol-row"><span class="vol-key">Vol + Mcap</span><span class="vol-v" style="color:${d.has_volume?'var(--buy)':'var(--muted)'}">${d.has_volume?'Yes':'No'}</span></div>
+          <div class="vol-row"><span class="vol-key">Coins</span><span class="vol-v">100</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <span>Disclaimer:</span> CandleCast is an ML-based signal tool built on historical price data. It does <strong>not</strong> constitute financial advice. Crypto markets are highly volatile. Always do your own research before trading.
+    </div>
+  `;
+
+  // Draw chart
+  const labels=Array.from({length:prices.length},(_,i)=>{
+    const d=new Date();d.setDate(d.getDate()-(prices.length-1-i));
+    return d.toLocaleDateString('en',{month:'short',day:'numeric'});
+  });
+  const isUp=prices[prices.length-1]>=prices[0];
+  const lineColor=isUp?'#00e5a0':'#ff4d6d';
+  const ctx=document.getElementById('priceChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,220);
+  grad.addColorStop(0,lineColor+'33');
+  grad.addColorStop(1,lineColor+'00');
+  if(priceChart)priceChart.destroy();
+  priceChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data:prices,
+        borderColor:lineColor,
+        borderWidth:2,
+        backgroundColor:grad,
+        fill:true,
+        tension:0.4,
+        pointRadius:0,
+        pointHoverRadius:4,
+        pointHoverBackgroundColor:lineColor
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        mode:'index',intersect:false,
+        backgroundColor:'#1e2230',
+        titleColor:'#7a8099',
+        bodyColor:'#f0f2f8',
+        borderColor:'#ffffff20',
+        borderWidth:1,
+        callbacks:{label:ctx=>`$${ctx.raw.toFixed(ctx.raw>=1?2:6)}`}
+      }},
+      scales:{
+        x:{display:false},
+        y:{display:false}
+      },
+      interaction:{mode:'index',intersect:false}
+    }
+  });
+}
+
+// INIT
+renderHero();
+renderList();
+setTimeout(()=>selectCoin('BTC'),100);
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openModal(){
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  document.getElementById('reportArea').innerHTML='';
+  document.getElementById('inputCoin').focus();
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.getElementById('suggestList').classList.remove('show');
+}
+function handleOverlayClick(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ─── COIN AUTOCOMPLETE ────────────────────────────────────────────────────────
+let highlightIdx=-1;
+function handleCoinInput(){
+  const q=document.getElementById('inputCoin').value.trim().toUpperCase();
+  const list=document.getElementById('suggestList');
+  highlightIdx=-1;
+  if(!q){list.classList.remove('show');return;}
+  const matches=Object.keys(PREDICTIONS).filter(k=>k.startsWith(q)||k.includes(q)).slice(0,8);
+  if(!matches.length){list.classList.remove('show');return;}
+  list.innerHTML=matches.map((sym,i)=>{
+    const d=PREDICTIONS[sym];
+    const sc=d.signal==='BUY'?'color:#00e5a0':d.signal==='SELL'?'color:#ff4d6d':'color:#f5a623';
+    return `<div class="suggest-item" data-sym="${sym}" data-price="${d.price}" onclick="pickCoin('${sym}',${d.price})">
+      <span class="suggest-sym">${sym}</span>
+      <span class="suggest-price">${fmtPrice(d.price)}</span>
+      <span class="suggest-sig" style="${sc}">${d.signal}</span>
+    </div>`;
+  }).join('');
+  list.classList.add('show');
+}
+function handleCoinKey(e){
+  const items=document.querySelectorAll('.suggest-item');
+  if(e.key==='ArrowDown'){e.preventDefault();highlightIdx=Math.min(highlightIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('highlighted',i===highlightIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();highlightIdx=Math.max(highlightIdx-1,0);items.forEach((el,i)=>el.classList.toggle('highlighted',i===highlightIdx));}
+  else if(e.key==='Enter'&&highlightIdx>=0){const el=items[highlightIdx];pickCoin(el.dataset.sym,parseFloat(el.dataset.price));}
+  else if(e.key==='Escape'){document.getElementById('suggestList').classList.remove('show');}
+}
+function pickCoin(sym,price){
+  document.getElementById('inputCoin').value=sym;
+  document.getElementById('inputPrice').value=price||'';
+  document.getElementById('suggestList').classList.remove('show');
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.coin-suggest'))document.getElementById('suggestList').classList.remove('show');});
+
+// ─── BUILD PREDICTION PROMPT ──────────────────────────────────────────────────
+function buildPrompt(sym,price,amount,period,position,modelData){
+  const d=modelData;
+  const posText={
+    not_bought:'The user has NOT bought yet and wants to know if they should buy.',
+    already_bought:'The user ALREADY BOUGHT this coin and wants to know if they should hold or sell.',
+    partial:'The user holds SOME of this coin and wants to know if they should buy more.'
+  }[position];
+
+  const coins=parseFloat(amount)/parseFloat(price);
+  const coinsStr=coins>=0.001?coins.toFixed(4):'~'+coins.toExponential(2);
+
+  return `You are CandleCast, a crypto analysis AI. A user wants a detailed investment prediction report.
+
+USER INPUT:
+- Coin: ${sym}
+- Current Price: $${parseFloat(price).toLocaleString()}
+- Investment Amount: $${parseFloat(amount).toLocaleString()} (= ${coinsStr} ${sym})
+- Hold Period: ${period}
+- Position: ${posText}
+
+ML MODEL DATA (XGBoost trained on 231K rows, 100 coins, 2010–2026):
+- Signal: ${d.signal} (${d.confidence.toFixed(1)}% confidence)
+- BUY probability: ${d.probas.buy}%
+- SELL probability: ${d.probas.sell}%
+- HOLD probability: ${d.probas.hold}%
+- RSI (14): ${d.rsi.toFixed(1)} ${d.rsi<30?'(oversold)':d.rsi>70?'(overbought)':'(neutral)'}
+- 1-Day Change: ${d.change_1d>0?'+':''}${d.change_1d.toFixed(2)}%
+- 7-Day Change: ${d.change_7d>0?'+':''}${d.change_7d.toFixed(2)}%
+- Has Volume + Marketcap data: ${d.has_volume?'Yes':'No'}
+- Last data date: ${d.last_date}
+
+Write a detailed, professional analysis report in this EXACT JSON format (no markdown, no backticks, only raw JSON):
+
+{
+  "headline": "One punchy sentence summarizing the situation (max 15 words)",
+  "history": "2-3 sentences on this coin's historical price behavior, major rises and crashes, and overall trend pattern since inception.",
+  "market_context": "2 sentences on current market conditions and what the technical indicators (RSI, 7d change, 1d change) are telling us right now.",
+  "investment_analysis": "3-4 sentences analyzing this specific investment: the $${parseFloat(amount).toLocaleString()} amount, the ${period} hold window, expected scenario range (optimistic, base, bearish), and what the ML model signal means in this context.",
+  "risk_assessment": "2-3 sentences on the main risks for this specific coin and hold period.",
+  "verdict": "${d.signal}",
+  "conclusions": [
+    "Conclusive statement 1 — direct, specific to this coin and amount",
+    "Conclusive statement 2 — about the hold period and timing",
+    "Conclusive statement 3 — about what to watch out for or what triggers a change in stance"
+  ],
+  "target_optimistic": "Price target if things go well (just the number, e.g. 72000)",
+  "target_base": "Most likely price in ${period} (just the number)",
+  "target_bearish": "Price if things go badly (just the number)"
+}
+
+Be specific, data-driven, and direct. No generic fluff. Reference the actual numbers.`;
+}
+
+// ─── GENERATE PREDICTION ─────────────────────────────────────────────────────
+async function generatePrediction() {
+  const coin = document.getElementById('inputCoin').value.trim().toLowerCase();
+  const amount = document.getElementById('inputAmount').value.trim();
+  const position = document.getElementById('inputPosition').value;
+  const output = document.getElementById('reportArea');
+  const btn = document.getElementById('genBtn');
+
+  if (!coin) {
+    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ Please enter a coin</p>";
+    return;
+  }
+
+  btn.disabled = true;
+  output.innerHTML = `
+    <div class="loading-state">
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+      <div class="loading-label">Fetching live price...</div>
+    </div>
+  `;
+
+  // STEP 1: get live price from the Node → CoinGecko endpoint
+  const price = await fetch(`/api/price/${coin}`)
+    .then(res => res.json())
+    .then(data => data && typeof data.price !== 'undefined' ? data.price : null)
+    .catch(() => null);
+
+  if (!price) {
+    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ Invalid coin or API error</p>";
+    btn.disabled = false;
+    return;
+  }
+
+  output.innerHTML = `
+    <div class="loading-state">
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+      <div class="loading-label">Running ML model...</div>
+    </div>
+  `;
+
+  // STEP 2: build features for the Flask model
+  const features = {
+    return: 0.02,
+    ma7: price * 0.98,
+    ma30: price * 0.95,
+    volatility: 1.5
+  };
+
+  // STEP 3: call the ML model through Node
+  const ml = await fetch('/api/ml-predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(features)
+  })
+    .then(res => res.json())
+    .catch(() => null);
+
+  if (!ml) {
+    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ ML prediction failed</p>";
+    btn.disabled = false;
+    return;
+  }
+
+  const signal = ml.signal ?? ml.prediction?.signal ?? ml.result?.signal ?? 'N/A';
+  const confidenceValue = ml.confidence ?? ml.prediction?.confidence ?? ml.result?.confidence ?? null;
+  const confidencePct = confidenceValue === null || confidenceValue === undefined ? 'N/A' : `${(Number(confidenceValue) * 100).toFixed(2)}%`;
+  const sigClass = String(signal).toUpperCase();
+
+  output.innerHTML = `
+    <div class="verdict-card ${sigClass}">
+      <div class="verdict-header">
+        <div class="verdict-icon ${sigClass}">${sigClass === 'BUY' ? '🚀' : sigClass === 'SELL' ? '🔻' : '⏸'}</div>
+        <div>
+          <div class="verdict-label ${sigClass}">${signal}</div>
+          <div class="verdict-sublabel">Confidence: ${confidencePct}</div>
+        </div>
+      </div>
+      <div class="verdict-conclusions">
+        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Coin: <b>${coin.toUpperCase()}</b></div>
+        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Live price: <b>$${Number(price).toLocaleString()}</b></div>
+        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Position: <b>${position.replaceAll('_', ' ')}</b></div>
+        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Investment: <b>$${amount || '0'}</b></div>
+      </div>
+    </div>
+    <hr class="report-divider">
+    <div class="loading-state" style="padding:12px 0 0">
+      <div class="loading-label">Generating AI analysis...</div>
+    </div>
+  `;
+
+  // STEP 4: generate AI report (if the Anthropic key is configured)
+  const ai = await fetch('/api/report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: `
+Analyze this crypto trade and provide a concise actionable report.
+Coin: ${coin.toUpperCase()}
+Live price: ${price}
+Model signal: ${signal}
+Model confidence: ${confidencePct}
+Investment amount: ${amount || '0'} USD
+Position: ${position}
+
+Return a short explanation and key risks.`
+    })
+  })
+    .then(res => res.json())
+    .catch(() => null);
+
+  if (ai && ai.text) {
+    output.innerHTML += `<div class="report"><div class="report-text"><p>${ai.text}</p></div></div>`;
+  } else {
+    output.innerHTML += `<p style="color:var(--muted);font-family:var(--mono);font-size:12px;margin-top:10px">⚠️ AI analysis unavailable (check API key)</p>`;
+  }
+
+  btn.disabled = false;
+}
+
+// ─── RENDER REPORT ────────────────────────────────────────────────────────────
+function renderReport(r,sym,price,amount,period,d){
+  const verdict=r.verdict||d.signal;
+  const col=verdict==='BUY'?'var(--buy)':verdict==='SELL'?'var(--sell)':'var(--hold)';
+  const icon=verdict==='BUY'?'📈':verdict==='SELL'?'📉':'⏸';
+  const coins=(parseFloat(amount)/parseFloat(price));
+  const coinsStr=coins>=0.001?coins.toFixed(4):coins.toExponential(2);
+
+  const optTarget=parseFloat(r.target_optimistic)||null;
+  const baseTarget=parseFloat(r.target_base)||null;
+  const bearTarget=parseFloat(r.target_bearish)||null;
+
+  const optReturn=optTarget?((optTarget-price)/price*100).toFixed(1):null;
+  const baseReturn=baseTarget?((baseTarget-price)/price*100).toFixed(1):null;
+  const bearReturn=bearTarget?((bearTarget-price)/price*100).toFixed(1):null;
+
+  const optVal=optTarget?(coins*optTarget).toFixed(2):null;
+  const baseVal=baseTarget?(coins*baseTarget).toFixed(2):null;
+  const bearVal=bearTarget?(coins*bearTarget).toFixed(2):null;
+
+  document.getElementById('reportArea').innerHTML=`
+  <hr class="report-divider">
+  <div class="report">
+
+    <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;line-height:1.5">"${r.headline||''}"</div>
+
+    <div class="report-section">
+      <div class="report-section-title">Historical Overview</div>
+      <div class="report-text"><p>${r.history||''}</p></div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">Current Market Conditions</div>
+      <div class="report-text"><p>${r.market_context||''}</p></div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">Investment Analysis · $${parseFloat(amount).toLocaleString()} · ${period}</div>
+      <div class="report-text"><p>${r.investment_analysis||''}</p></div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">Risk Assessment</div>
+      <div class="report-text"><p>${r.risk_assessment||''}</p></div>
+    </div>
+
+    ${(optTarget||baseTarget||bearTarget)?`
+    <div class="report-section">
+      <div class="report-section-title">Price Targets · ${period}</div>
+      <div class="inv-calc">
+        ${optTarget?`<div class="inv-stat">
+          <div class="inv-stat-label">OPTIMISTIC</div>
+          <div class="inv-stat-val" style="color:var(--buy)">$${optTarget.toLocaleString()}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--buy);margin-top:3px">+${optReturn}%</div>
+          ${optVal?`<div style="font-size:11px;color:var(--muted);margin-top:4px">→ $${parseFloat(optVal).toLocaleString()}</div>`:''}
+        </div>`:''}
+        ${baseTarget?`<div class="inv-stat">
+          <div class="inv-stat-label">BASE CASE</div>
+          <div class="inv-stat-val" style="color:${parseFloat(baseReturn)>=0?'var(--buy)':'var(--sell)'}">$${baseTarget.toLocaleString()}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:${parseFloat(baseReturn)>=0?'var(--buy)':'var(--sell)'};margin-top:3px">${parseFloat(baseReturn)>=0?'+':''}${baseReturn}%</div>
+          ${baseVal?`<div style="font-size:11px;color:var(--muted);margin-top:4px">→ $${parseFloat(baseVal).toLocaleString()}</div>`:''}
+        </div>`:''}
+        ${bearTarget?`<div class="inv-stat">
+          <div class="inv-stat-label">BEARISH</div>
+          <div class="inv-stat-val" style="color:var(--sell)">$${bearTarget.toLocaleString()}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--sell);margin-top:3px">${parseFloat(bearReturn)>=0?'+':''}${bearReturn}%</div>
+          ${bearVal?`<div style="font-size:11px;color:var(--muted);margin-top:4px">→ $${parseFloat(bearVal).toLocaleString()}</div>`:''}
+        </div>`:''}
+        <div class="inv-stat">
+          <div class="inv-stat-label">YOUR COINS</div>
+          <div class="inv-stat-val" style="color:var(--text)">${coinsStr}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">at $${parseFloat(price).toLocaleString()}</div>
+        </div>
+      </div>
+    </div>`:''}
+
+    <div class="verdict-card ${verdict}">
+      <div class="verdict-header">
+        <div class="verdict-icon ${verdict}">${icon}</div>
+        <div>
+          <div class="verdict-label ${verdict}">${verdict}</div>
+          <div class="verdict-sublabel">FINAL VERDICT · ${sym} · ${period.toUpperCase()}</div>
+        </div>
+      </div>
+      <div class="verdict-conclusions">
+        ${(r.conclusions||[]).map(c=>`
+          <div class="verdict-point">
+            <div class="verdict-bullet ${verdict}"></div>
+            <span>${c}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="disclaimer" style="margin-top:16px">
+      <span>Disclaimer:</span> This AI-generated report is for informational purposes only and does not constitute financial advice. Crypto markets are highly volatile. Past performance does not guarantee future results. Always do your own research.
+    </div>
+  </div>`;
+}
+
+// ── GET ALL COINS (CoinGecko) ─────────────────────
+app.get('/api/coins', async (req, res) => {
+  try {
+    const response = await axios.get(
+      'https://api.coingecko.com/api/v3/coins/list'
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error("Coin list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch coins" });
+  }
+});
+
+
+let COIN_MAP = {};
+
+async function loadCoins() {
+  const res = await fetch('/api/coins');
+  const coins = await res.json();
+
+  coins.forEach(c => {
+    COIN_MAP[c.symbol] = c.id;
+  });
+
+  console.log("Loaded coins:", Object.keys(COIN_MAP).length);
+}
+
+// call this once when page loads
+loadCoins();
+
+
+
+</script>
+</body>
+</html>
