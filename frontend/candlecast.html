@@ -6,6 +6,8 @@
 <title>CandleCast — Crypto Signal Predictor</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -257,6 +259,290 @@ select.input-field option{background:var(--surface2)}
 .inv-stat{background:var(--surface3);border-radius:8px;padding:12px}
 .inv-stat-label{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.6px;margin-bottom:5px}
 .inv-stat-val{font-family:var(--mono);font-size:14px;font-weight:700}
+
+
+/* BEAUTIFUL REPORT UI */
+.analysis-report{
+  background: linear-gradient(180deg, rgba(108,99,255,.08), rgba(62,207,255,.03));
+  border: 1px solid var(--border2);
+  border-radius: 18px;
+  padding: 18px;
+  margin-top: 18px;
+  box-shadow: 0 12px 50px rgba(0,0,0,.18);
+}
+
+.report-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.report-kicker{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+
+.report-title-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-top:8px;
+}
+
+.report-coin-pill,
+.report-price-pill,
+.report-position-pill{
+  font-family:var(--mono);
+  font-size:11px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+}
+
+.report-signal-pill{
+  font-family:var(--mono);
+  font-size:11px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  background:rgba(255,255,255,.03);
+}
+
+.report-signal-pill.BUY{
+  color:var(--buy);
+  border-color:#00e5a040;
+  background:#00e5a010;
+}
+
+.report-signal-pill.SELL{
+  color:var(--sell);
+  border-color:#ff4d6d40;
+  background:#ff4d6d10;
+}
+
+.report-signal-pill.HOLD{
+  color:var(--hold);
+  border-color:#f5a62340;
+  background:#f5a62310;
+}
+
+.report-download-btn{
+  width:38px;
+  height:38px;
+  border-radius:10px;
+  border:1px solid var(--border2);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .2s;
+  flex-shrink:0;
+}
+
+.report-download-btn:hover{
+  transform:translateY(-1px);
+  border-color:var(--accent);
+  background:rgba(108,99,255,.12);
+}
+
+.report-download-btn svg{
+  width:16px;
+  height:16px;
+}
+
+.report-hero{
+  display:grid;
+  grid-template-columns:1.3fr .9fr;
+  gap:14px;
+  margin-bottom:16px;
+}
+
+@media(max-width:700px){
+  .report-hero{grid-template-columns:1fr}
+}
+
+.report-hero-main,
+.report-hero-side{
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+}
+
+.report-verdict{
+  font-family:var(--mono);
+  font-size:30px;
+  font-weight:700;
+  letter-spacing:1px;
+}
+
+.report-verdict.BUY{color:var(--buy)}
+.report-verdict.SELL{color:var(--sell)}
+.report-verdict.HOLD{color:var(--hold)}
+
+.report-confidence{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.report-stat-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.report-stat{
+  background:var(--surface3);
+  border-radius:12px;
+  padding:12px;
+  border:1px solid var(--border);
+}
+
+.report-stat-label{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--muted2);
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.report-stat-val{
+  font-family:var(--mono);
+  font-size:14px;
+  font-weight:700;
+  color:var(--text);
+  word-break:break-word;
+}
+
+.report-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+@media(max-width:700px){
+  .report-section-grid{grid-template-columns:1fr}
+}
+
+.report-section-card{
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  min-height:150px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.report-section-card.buy{border-top:3px solid var(--buy)}
+.report-section-card.sell{border-top:3px solid var(--sell)}
+.report-section-card.hold{border-top:3px solid var(--hold)}
+
+.report-section-title{
+  font-family:var(--mono);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.9px;
+  color:var(--muted);
+}
+
+.report-section-text{
+  font-size:13px;
+  line-height:1.75;
+  color:var(--text);
+}
+
+.report-section-text p{
+  margin-bottom:8px;
+}
+
+.report-section-text strong{
+  color:var(--text);
+}
+
+.report-bullets{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.report-bullet{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.report-dot{
+  width:7px;
+  height:7px;
+  border-radius:999px;
+  background:var(--accent2);
+  margin-top:7px;
+  flex-shrink:0;
+}
+
+.target-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+@media(max-width:700px){
+  .target-grid{grid-template-columns:1fr}
+}
+
+.target-card{
+  background:var(--surface3);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+}
+
+.target-label{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--muted2);
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.target-value{
+  font-family:var(--mono);
+  font-size:18px;
+  font-weight:700;
+}
+
+.target-value.buy{color:var(--buy)}
+.target-value.sell{color:var(--sell)}
+.target-value.hold{color:var(--hold)}
+
+.report-foot{
+  margin-top:12px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.7;
+  border-top:1px solid var(--border);
+  padding-top:12px;
+}
 </style>
 </head>
 <body>
@@ -741,47 +1027,376 @@ Write a detailed, professional analysis report in this EXACT JSON format (no mar
 Be specific, data-driven, and direct. No generic fluff. Reference the actual numbers.`;
 }
 
+let latestReportMeta = null;
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatRichText(text = '') {
+  const raw = String(text || '').trim();
+  if (!raw) return '<p style="color:var(--muted)">Not provided.</p>';
+
+  const blocks = raw.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+  return blocks.map(block => {
+    const safe = escapeHtml(block)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+    return `<p>${safe}</p>`;
+  }).join('');
+}
+
+function safeJsonParse(text) {
+  if (!text) return null;
+
+  const cleaned = String(text)
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {}
+
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    try {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    } catch {}
+  }
+
+  return null;
+}
+
+function splitSentences(text = '') {
+  return String(text || '')
+    .replace(/\n+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function normalizeReport(rawText) {
+  const parsed = safeJsonParse(rawText);
+
+  if (parsed) {
+    return {
+      headline: parsed.headline || 'AI trade analysis',
+      summary: parsed.summary || parsed.overview || '',
+      market_context: parsed.market_context || parsed.market || '',
+      technical_analysis: parsed.technical_analysis || parsed.technical || '',
+      risk_assessment: parsed.risk_assessment || parsed.risk || '',
+      action_plan: parsed.action_plan || parsed.recommendation || '',
+      verdict: (parsed.verdict || '').toUpperCase(),
+      conclusions: Array.isArray(parsed.conclusions)
+        ? parsed.conclusions
+        : (parsed.conclusions ? [parsed.conclusions] : []),
+      optimistic_target: parsed.optimistic_target || parsed.target_optimistic || '',
+      base_target: parsed.base_target || parsed.target_base || '',
+      bearish_target: parsed.bearish_target || parsed.target_bearish || ''
+    };
+  }
+
+  const fallbackSummary = String(rawText || '').trim();
+  return {
+    headline: 'AI trade analysis',
+    summary: fallbackSummary,
+    market_context: '',
+    technical_analysis: '',
+    risk_assessment: '',
+    action_plan: '',
+    verdict: '',
+    conclusions: splitSentences(fallbackSummary),
+    optimistic_target: '',
+    base_target: '',
+    bearish_target: ''
+  };
+}
+
+function renderBeautifulReport(report, meta) {
+  const verdict = (report.verdict || meta.signal || 'HOLD').toUpperCase();
+  const signalClass = ['BUY', 'SELL', 'HOLD'].includes(verdict) ? verdict : 'HOLD';
+
+  const coin = escapeHtml(meta.coin || '');
+  const priceLabel = fmtPrice(Number(meta.price));
+  const amountLabel = `$${Number(meta.amount || 0).toLocaleString()}`;
+  const positionMap = {
+    not_bought: "I haven't bought yet",
+    already_bought: "I already bought",
+    partial: "I hold some"
+  };
+  const positionLabel = positionMap[meta.position] || escapeHtml(meta.position || '');
+
+  const summary = report.summary || report.headline || 'No summary provided.';
+  const marketContext = report.market_context || 'No market context returned by the AI.';
+  const technical = report.technical_analysis || 'No technical analysis returned by the AI.';
+  const risk = report.risk_assessment || 'No risk assessment returned by the AI.';
+  const action = report.action_plan || 'No action plan returned by the AI.';
+
+  const conclusions = (report.conclusions && report.conclusions.length)
+    ? report.conclusions
+    : splitSentences(summary);
+
+  const hasTargets = report.optimistic_target || report.base_target || report.bearish_target;
+
+  return `
+    <div class="analysis-report pdf-report-card" id="analysisReportCard">
+      <div class="report-topbar">
+        <div>
+          <div class="report-kicker">Generated Analysis Report</div>
+          <div class="report-title-row">
+            <span class="report-coin-pill">${coin}</span>
+            <span class="report-price-pill">${priceLabel}</span>
+            <span class="report-position-pill">${escapeHtml(positionLabel)}</span>
+            <span class="report-signal-pill ${signalClass}">${signalClass}</span>
+          </div>
+        </div>
+
+        <button class="report-download-btn" onclick="downloadCurrentReport()" title="Download PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <path d="M7 10l5 5 5-5"/>
+            <path d="M12 15V3"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="report-hero">
+        <div class="report-hero-main">
+          <div class="report-kicker">Overall Verdict</div>
+          <div class="report-verdict ${signalClass}">${signalClass}</div>
+          <div class="report-confidence">${meta.confidence || ''} confidence · Search-time price: ${priceLabel}</div>
+          <div style="margin-top:10px" class="report-section-text">
+            ${formatRichText(report.headline || `Trade analysis for ${coin}`)}
+          </div>
+        </div>
+
+        <div class="report-hero-side">
+          <div class="report-kicker">Trade Snapshot</div>
+          <div class="report-stat-grid">
+            <div class="report-stat">
+              <div class="report-stat-label">Coin</div>
+              <div class="report-stat-val">${coin}</div>
+            </div>
+            <div class="report-stat">
+              <div class="report-stat-label">Live Price</div>
+              <div class="report-stat-val">${priceLabel}</div>
+            </div>
+            <div class="report-stat">
+              <div class="report-stat-label">Investment</div>
+              <div class="report-stat-val">${amountLabel}</div>
+            </div>
+            <div class="report-stat">
+              <div class="report-stat-label">Position</div>
+              <div class="report-stat-val">${escapeHtml(positionLabel)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-section-grid">
+        <div class="report-section-card buy">
+          <div class="report-section-title">Market Snapshot</div>
+          <div class="report-section-text">
+            <p><strong>Coin:</strong> ${coin}</p>
+            <p><strong>Price at search time:</strong> ${priceLabel}</p>
+            <p><strong>Investment amount:</strong> ${amountLabel}</p>
+            <p><strong>Position:</strong> ${escapeHtml(positionLabel)}</p>
+            <p><strong>Signal:</strong> <span class="${signalClass}">${signalClass}</span></p>
+          </div>
+        </div>
+
+        <div class="report-section-card hold">
+          <div class="report-section-title">Market Context</div>
+          <div class="report-section-text">
+            ${formatRichText(marketContext)}
+          </div>
+        </div>
+
+        <div class="report-section-card sell">
+          <div class="report-section-title">Technical Analysis</div>
+          <div class="report-section-text">
+            ${formatRichText(technical)}
+          </div>
+        </div>
+
+        <div class="report-section-card sell">
+          <div class="report-section-title">Risk Assessment</div>
+          <div class="report-section-text">
+            ${formatRichText(risk)}
+          </div>
+        </div>
+
+        <div class="report-section-card buy">
+          <div class="report-section-title">Action Plan</div>
+          <div class="report-section-text">
+            ${formatRichText(action)}
+          </div>
+        </div>
+
+        <div class="report-section-card hold">
+          <div class="report-section-title">Key Conclusions</div>
+          <div class="report-bullets">
+            ${(conclusions.length ? conclusions : ['No conclusions returned by the AI.']).map(item => `
+              <div class="report-bullet">
+                <div class="report-dot"></div>
+                <div>${escapeHtml(item)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      ${hasTargets ? `
+        <div class="target-grid">
+          ${report.optimistic_target ? `
+            <div class="target-card">
+              <div class="target-label">Optimistic Target</div>
+              <div class="target-value buy">$${escapeHtml(report.optimistic_target)}</div>
+            </div>` : ''}
+
+          ${report.base_target ? `
+            <div class="target-card">
+              <div class="target-label">Base Target</div>
+              <div class="target-value hold">$${escapeHtml(report.base_target)}</div>
+            </div>` : ''}
+
+          ${report.bearish_target ? `
+            <div class="target-card">
+              <div class="target-label">Bearish Target</div>
+              <div class="target-value sell">$${escapeHtml(report.bearish_target)}</div>
+            </div>` : ''}
+        </div>
+      ` : ''}
+
+      <div class="report-foot">
+        <strong>Disclaimer:</strong> This report is for informational purposes only and does not constitute financial advice.
+        Crypto markets are highly volatile and past performance does not guarantee future results.
+      </div>
+    </div>
+  `;
+}
+
+async function downloadCurrentReport() {
+  const source = document.getElementById('analysisReportCard');
+  if (!source || !window.html2canvas || !window.jspdf) return;
+
+  const cloneWrap = document.createElement('div');
+  cloneWrap.style.position = 'fixed';
+  cloneWrap.style.left = '-10000px';
+  cloneWrap.style.top = '0';
+  cloneWrap.style.width = '980px';
+  cloneWrap.style.background = '#0a0b0f';
+  cloneWrap.innerHTML = source.outerHTML;
+  document.body.appendChild(cloneWrap);
+
+  const clone = cloneWrap.querySelector('#analysisReportCard');
+
+  const canvas = await html2canvas(clone, {
+    scale: 2,
+    backgroundColor: '#0a0b0f',
+    useCORS: true
+  });
+
+  document.body.removeChild(cloneWrap);
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'pt', 'a4');
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = canvas.height * imgWidth / canvas.width;
+  const imgData = canvas.toDataURL('image/png');
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+  heightLeft -= pageHeight;
+
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+    heightLeft -= pageHeight;
+  }
+
+  const fileName = `CandleCast-${(latestReportMeta?.coin || 'Report')}-Analysis.pdf`;
+  pdf.save(fileName);
+}
 // ─── GENERATE PREDICTION ─────────────────────────────────────────────────────
 async function generatePrediction() {
   const coin = document.getElementById('inputCoin').value.trim().toLowerCase();
   const amount = document.getElementById('inputAmount').value.trim();
   const position = document.getElementById('inputPosition').value;
+
   const output = document.getElementById('reportArea');
   const btn = document.getElementById('genBtn');
 
   if (!coin) {
-    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ Please enter a coin</p>";
+    output.innerHTML = `
+      <p style="color:var(--sell);font-family:var(--mono);font-size:12px">
+        ❌ Please enter a coin
+      </p>
+    `;
     return;
   }
 
   btn.disabled = true;
+
   output.innerHTML = `
     <div class="loading-state">
-      <div class="loading-dots"><span></span><span></span><span></span></div>
-      <div class="loading-label">Fetching live price...</div>
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="loading-label">Fetching live market price...</div>
     </div>
   `;
 
-  // STEP 1: get live price from the Node → CoinGecko endpoint
+  // STEP 1 → LIVE PRICE
   const price = await fetch(`/api/price/${coin}`)
     .then(res => res.json())
-    .then(data => data && typeof data.price !== 'undefined' ? data.price : null)
+    .then(data => data && typeof data.price !== 'undefined'
+      ? Number(data.price)
+      : null
+    )
     .catch(() => null);
 
   if (!price) {
-    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ Invalid coin or API error</p>";
+    output.innerHTML = `
+      <p style="color:var(--sell);font-family:var(--mono);font-size:12px">
+        ❌ Invalid coin or API error
+      </p>
+    `;
     btn.disabled = false;
     return;
   }
 
   output.innerHTML = `
     <div class="loading-state">
-      <div class="loading-dots"><span></span><span></span><span></span></div>
-      <div class="loading-label">Running ML model...</div>
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="loading-label">Running ML prediction model...</div>
     </div>
   `;
 
-  // STEP 2: build features for the Flask model
+  // STEP 2 → ML FEATURES
   const features = {
     return: 0.02,
     ma7: price * 0.98,
@@ -789,77 +1404,215 @@ async function generatePrediction() {
     volatility: 1.5
   };
 
-  // STEP 3: call the ML model through Node
+  // STEP 3 → ML API
   const ml = await fetch('/api/ml-predict', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(features)
   })
     .then(res => res.json())
     .catch(() => null);
 
   if (!ml) {
-    output.innerHTML = "<p style='color:var(--sell);font-family:var(--mono);font-size:12px'>❌ ML prediction failed</p>";
+    output.innerHTML = `
+      <p style="color:var(--sell);font-family:var(--mono);font-size:12px">
+        ❌ ML prediction failed
+      </p>
+    `;
     btn.disabled = false;
     return;
   }
 
-  const signal = ml.signal ?? ml.prediction?.signal ?? ml.result?.signal ?? 'N/A';
-  const confidenceValue = ml.confidence ?? ml.prediction?.confidence ?? ml.result?.confidence ?? null;
-  const confidencePct = confidenceValue === null || confidenceValue === undefined ? 'N/A' : `${(Number(confidenceValue) * 100).toFixed(2)}%`;
+  const signal =
+    ml.signal ??
+    ml.prediction?.signal ??
+    ml.result?.signal ??
+    'HOLD';
+
+  const confidenceValue =
+    ml.confidence ??
+    ml.prediction?.confidence ??
+    ml.result?.confidence ??
+    null;
+
+  const confidencePct =
+    confidenceValue === null || confidenceValue === undefined
+      ? 'N/A'
+      : `${(Number(confidenceValue) * 100).toFixed(2)}%`;
+
   const sigClass = String(signal).toUpperCase();
 
+  // SHOW INITIAL SIGNAL CARD
   output.innerHTML = `
     <div class="verdict-card ${sigClass}">
       <div class="verdict-header">
-        <div class="verdict-icon ${sigClass}">${sigClass === 'BUY' ? '🚀' : sigClass === 'SELL' ? '🔻' : '⏸'}</div>
+        <div class="verdict-icon ${sigClass}">
+          ${
+            sigClass === 'BUY'
+              ? '🚀'
+              : sigClass === 'SELL'
+              ? '🔻'
+              : '⏸'
+          }
+        </div>
+
         <div>
-          <div class="verdict-label ${sigClass}">${signal}</div>
-          <div class="verdict-sublabel">Confidence: ${confidencePct}</div>
+          <div class="verdict-label ${sigClass}">
+            ${sigClass}
+          </div>
+
+          <div class="verdict-sublabel">
+            Confidence: ${confidencePct}
+          </div>
         </div>
       </div>
+
       <div class="verdict-conclusions">
-        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Coin: <b>${coin.toUpperCase()}</b></div>
-        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Live price: <b>$${Number(price).toLocaleString()}</b></div>
-        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Position: <b>${position.replaceAll('_', ' ')}</b></div>
-        <div class="verdict-point"><div class="verdict-bullet ${sigClass}"></div>Investment: <b>$${amount || '0'}</b></div>
+
+        <div class="verdict-point">
+          <div class="verdict-bullet ${sigClass}"></div>
+          Coin: <b>${coin.toUpperCase()}</b>
+        </div>
+
+        <div class="verdict-point">
+          <div class="verdict-bullet ${sigClass}"></div>
+          Live price: <b>${fmtPrice(price)}</b>
+        </div>
+
+        <div class="verdict-point">
+          <div class="verdict-bullet ${sigClass}"></div>
+          Position: <b>${position.replaceAll('_', ' ')}</b>
+        </div>
+
+        <div class="verdict-point">
+          <div class="verdict-bullet ${sigClass}"></div>
+          Investment: <b>$${Number(amount || 0).toLocaleString()}</b>
+        </div>
+
       </div>
     </div>
+
     <hr class="report-divider">
+
     <div class="loading-state" style="padding:12px 0 0">
-      <div class="loading-label">Generating AI analysis...</div>
+      <div class="loading-label">
+        Generating AI analysis report...
+      </div>
     </div>
   `;
 
-  // STEP 4: generate AI report (if the Anthropic key is configured)
+  latestReportMeta = {
+    coin: coin.toUpperCase(),
+    price,
+    signal: sigClass,
+    confidence: confidencePct,
+    amount: amount || '0',
+    position
+  };
+
+  // STEP 4 → AI REPORT
   const ai = await fetch('/api/report', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
     body: JSON.stringify({
       prompt: `
-Analyze this crypto trade and provide a concise actionable report.
+You are CandleCast AI.
+
+Return STRICT JSON ONLY.
+No markdown.
+No backticks.
+No extra explanation.
+
+Use this exact structure:
+
+{
+  "headline": "One strong professional sentence",
+  "summary": "Detailed summary",
+  "market_context": "Current market conditions and momentum",
+  "technical_analysis": "Technical interpretation of the signal",
+  "risk_assessment": "Main risks and volatility concerns",
+  "action_plan": "Suggested next step for the investor",
+  "verdict": "BUY or SELL or HOLD",
+  "conclusions": [
+    "Conclusion 1",
+    "Conclusion 2",
+    "Conclusion 3"
+  ],
+  "optimistic_target": "number only",
+  "base_target": "number only",
+  "bearish_target": "number only"
+}
+
+Trade Details:
+
 Coin: ${coin.toUpperCase()}
-Live price: ${price}
-Model signal: ${signal}
-Model confidence: ${confidencePct}
-Investment amount: ${amount || '0'} USD
+Live Price: ${price}
+Model Signal: ${sigClass}
+Model Confidence: ${confidencePct}
+Investment Amount: $${amount || '0'}
 Position: ${position}
 
-Return a short explanation and key risks.`
+Make the analysis:
+- professional
+- visually descriptive
+- realistic
+- specific to the coin
+- specific to the current price
+- specific to the user's position
+`
     })
   })
     .then(res => res.json())
     .catch(() => null);
 
-  if (ai && ai.text) {
-    output.innerHTML += `<div class="report"><div class="report-text"><p>${ai.text}</p></div></div>`;
-  } else {
-    output.innerHTML += `<p style="color:var(--muted);font-family:var(--mono);font-size:12px;margin-top:10px">⚠️ AI analysis unavailable (check API key)</p>`;
-  }
+  // FALLBACK REPORT
+  const reportData = normalizeReport(
+    ai && ai.text
+      ? ai.text
+      : JSON.stringify({
+          headline: 'AI analysis unavailable',
+          summary:
+            'The prediction signal was generated successfully, but the AI report could not be loaded.',
+
+          market_context:
+            'Live market data and ML prediction are still functioning correctly.',
+
+          technical_analysis:
+            'The model returned a valid signal, but the long-form AI analysis is currently unavailable.',
+
+          risk_assessment:
+            'Without the AI layer, deeper contextual interpretation is limited.',
+
+          action_plan:
+            'Check your API key or AI provider configuration to restore full AI reports.',
+
+          verdict: sigClass,
+
+          conclusions: [
+            'The ML prediction engine is functioning properly.',
+            'Live pricing and signal generation are operational.',
+            'Only the AI explanation service is unavailable.'
+          ],
+
+          optimistic_target: '',
+          base_target: '',
+          bearish_target: ''
+        })
+  );
+
+  // FINAL BEAUTIFUL REPORT
+  output.innerHTML = renderBeautifulReport(
+    reportData,
+    latestReportMeta
+  );
 
   btn.disabled = false;
 }
-
 // ─── RENDER REPORT ────────────────────────────────────────────────────────────
 function renderReport(r,sym,price,amount,period,d){
   const verdict=r.verdict||d.signal;
@@ -958,8 +1711,6 @@ function renderReport(r,sym,price,amount,period,d){
     </div>
   </div>`;
 }
-
-
 </script>
 </body>
 </html>
