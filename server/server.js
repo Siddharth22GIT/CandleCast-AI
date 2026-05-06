@@ -29,8 +29,39 @@ const COIN_MAP = {
   bnb: "binancecoin",
   matic: "polygon",
   dot: "polkadot",
-  ltc: "litecoin"
+  ltc: "litecoin",
+  btc: "bitcoin",
+  eth: "ethereum",
+  bnb: "binancecoin",
+  xrp: "ripple",
+  ada: "cardano",
+  doge: "dogecoin",
+  dot: "polkadot",
+  avax: "avalanche-2",
+  link: "chainlink",
+  pol: "matic-network",
+  trx: "tron",
+  ltc: "litecoin",
+  bch: "bitcoin-cash",
+  xlm: "stellar",
+  atom: "cosmos",
+  uni: "uniswap",
+  etc: "ethereum-classic",
+  fil: "filecoin",
+  near: "near",
+  inj: "injective-protocol",
+  icp: "internet-computer",
+  hbar: "hedera-hashgraph",
+  vet: "vechain",
+  aave: "aave",
+  grt: "the-graph",
+  sand: "the-sandbox",
+  mana: "decentraland",
+  shib: "shiba-inu",
+  algo: "algorand"
 };
+
+
 
 // ── COINGECKO PRICE API ─────────────────────────
 app.get('/api/price/:coin', async (req, res) => {
@@ -54,6 +85,46 @@ app.get('/api/price/:coin', async (req, res) => {
   } catch (err) {
     console.error("CoinGecko Error:", err.message);
     res.status(500).json({ error: "Failed to fetch price" });
+  }
+});
+
+// ── COINGECKO PRICE API ─────────────────────────
+// ── COINGECKO CHART API ─────────────────────────
+app.get('/api/chart/:coin', async (req, res) => {
+  try {
+    const input = req.params.coin.toLowerCase();
+    const coinId = COIN_MAP[input] || input;
+
+    const response = await axios.get(
+      `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart`,
+      {
+        params: {
+          vs_currency: 'usd',
+          days: 7
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error("Chart API Error:", err.message);
+    res.status(500).json({ error: "Failed to fetch chart data" });
+  }
+});
+
+// ── GET ALL COINS (CoinGecko) ─────────────────────
+app.get('/api/coins', async (req, res) => {
+  try {
+    const response = await axios.get(
+      'https://api.coingecko.com/api/v3/coins/list'
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error("Coin list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch coins" });
   }
 });
 
