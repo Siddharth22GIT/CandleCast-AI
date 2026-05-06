@@ -149,27 +149,42 @@ app.post('/api/ml-predict', async (req, res) => {
   }
 });
 
-// ── CLAUDE REPORT ─────────────────────────
+// ── GROQ REPORT ─────────────────────────
+const OpenAI = require("openai");
+
+const client = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1"
+});
+
 app.post('/api/report', async (req, res) => {
-  const { prompt } = req.body;
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
+
+    const { prompt } = req.body;
+
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7
     });
 
-    const text = message.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
-
-    res.json({ text });
+    res.json({
+      text: completion.choices[0].message.content
+    });
 
   } catch (err) {
-    console.error('Claude error:', err.message);
-    res.status(500).json({ error: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      error: "AI report failed"
+    });
   }
 });
 
