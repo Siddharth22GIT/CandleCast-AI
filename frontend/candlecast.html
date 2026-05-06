@@ -44,7 +44,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 2
 
 /* HERO STATS */
 .hero{padding:28px 28px 20px;border-bottom:1px solid var(--border)}
-.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;max-width:900px}
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;max-width:100%;width:100%;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .stat-label{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;font-family:var(--mono)}
 .stat-val{font-family:var(--mono);font-size:22px;font-weight:700}
@@ -274,7 +274,6 @@ select.input-field option{background:var(--surface2)}
   </div>
   <div class="nav-right">
     <span class="model-badge">XGBoost · 25 Features</span>
-    <span class="accuracy-badge">68.4% high-conf</span>
     <button class="ai-predict-btn" onclick="openModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       Generate Prediction
@@ -457,22 +456,18 @@ function setFilter(f,btn){
 
 document.getElementById('searchBox').addEventListener('input',renderList);
 
-// GENERATE SPARKLINE DATA (synthetic wave based on change data)
-function genSparkline(sym,d){
-  const base=d.price;
-  const pts=60;
-  const arr=[];
-  let v=base/(1+(d.change_7d||0)/100);
-  for(let i=0;i<pts;i++){
-    const noise=(Math.random()-0.5)*0.015*v;
-    const trend=(d.change_7d||0)/100/pts*v;
-    v=Math.max(v+trend+noise,0.0000001);
-    arr.push(v);
-  }
-  arr.push(base);
-  return arr;
-}
+async function fetchChartData(sym) {
+  try {
+    const res = await fetch(`/api/chart/${sym.toLowerCase()}`);
+    const data = await res.json();
 
+    return data.prices || [];
+
+  } catch (err) {
+    console.error("Chart fetch failed:", err);
+    return [];
+  }
+}
 // SELECT COIN
 function selectCoin(sym){
   currentCoin=sym;
@@ -482,10 +477,11 @@ function selectCoin(sym){
   rp.classList.add('mobile-show');
 }
 
-function renderDetail(sym){
+async function renderDetail(sym){
   const d=PREDICTIONS[sym];
   const col=coinColor(sym);
-  const prices=genSparkline(sym,d);
+  const chartData = await fetchChartData(sym);
+  const prices = chartData.map(p => p[1]); 
   const sigColor=d.signal==='BUY'?'var(--buy)':d.signal==='SELL'?'var(--sell)':'var(--hold)';
   const rsiColor=d.rsi<30?'var(--sell)':d.rsi>70?'var(--buy)':'var(--hold)';
   const rsiPct=Math.min(100,Math.max(0,d.rsi));
@@ -589,10 +585,12 @@ function renderDetail(sym){
   `;
 
   // Draw chart
-  const labels=Array.from({length:prices.length},(_,i)=>{
-    const d=new Date();d.setDate(d.getDate()-(prices.length-1-i));
-    return d.toLocaleDateString('en',{month:'short',day:'numeric'});
+const labels = chartData.map(p => {
+  return new Date(p[0]).toLocaleDateString('en', {
+    month: 'short',
+    day: 'numeric'
   });
+});
   const isUp=prices[prices.length-1]>=prices[0];
   const lineColor=isUp?'#00e5a0':'#ff4d6d';
   const ctx=document.getElementById('priceChart').getContext('2d');
@@ -960,39 +958,6 @@ function renderReport(r,sym,price,amount,period,d){
     </div>
   </div>`;
 }
-
-// ── GET ALL COINS (CoinGecko) ─────────────────────
-app.get('/api/coins', async (req, res) => {
-  try {
-    const response = await axios.get(
-      'https://api.coingecko.com/api/v3/coins/list'
-    );
-
-    res.json(response.data);
-
-  } catch (err) {
-    console.error("Coin list error:", err.message);
-    res.status(500).json({ error: "Failed to fetch coins" });
-  }
-});
-
-
-let COIN_MAP = {};
-
-async function loadCoins() {
-  const res = await fetch('/api/coins');
-  const coins = await res.json();
-
-  coins.forEach(c => {
-    COIN_MAP[c.symbol] = c.id;
-  });
-
-  console.log("Loaded coins:", Object.keys(COIN_MAP).length);
-}
-
-// call this once when page loads
-loadCoins();
-
 
 
 </script>
